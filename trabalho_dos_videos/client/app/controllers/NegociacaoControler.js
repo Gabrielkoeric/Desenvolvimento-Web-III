@@ -6,9 +6,17 @@ class NegociacaoController{
         this._inputData = $("#data");
         this._inputQuantidade = $("#quantidade");
         this._inputValor = $("#valor");
-        this.negiciacoes = new Negociacoes(model => this._negiciacoesView.update(model));
+        this._negiciacoes = ProxyFactory.create(
+            new Negociacoes(),
+            ['adiciona', 'esvazia'], model => this._negiciacoesView.update(model)
+        )
         this._negociacoesView = NegociacoesView('#negociacoes');
-        this._negociacoesView = update(this._negociacoes);
+        this._negociacoesView.update(this._negiciacoes);
+
+        this._mensagem = ProxyFactory.create(
+            new Mensagem(),
+            ['texto'], model => this._mensagemView.update(model)
+        );
         this._mensagem = new Mensagem();
         this._mensagemView = new MensagemView('#mensagemView');
     }
@@ -18,7 +26,6 @@ class NegociacaoController{
 
         this._negociacoes.adiciona(this._criaNegociacao());
         this._mensagem.texto = 'negociação adicionada com sucesso';
-        this._mensagemView.update(this._mensagem);
         this._limparFormulario();
     }
 
@@ -39,8 +46,30 @@ class NegociacaoController{
 
     apaga(){
         this._negiciacoes.esvazia()
-        this._negociacoesView.update(this._negiciacoes)
         this._texto = 'negociação apagadas';
-        this._mensagemView.update(this._mensagem);
+        }
+
+    importaNegociacoes(){
+        console.log('importando negociacao');
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', 'negociacoes/semana');
+
+        xhr.onreadtatechange = () =>{
+            if (xhr.readState == 4){
+                if (xhr.status == 200){
+                    console.log('obtendo as negociaçoes do servidor');
+                    JSON.parse(xhr.responseText)
+                    .map(Object =>new Negociacao(new Date (objeto.data), objeto.quantidade, objeto.valor))
+                    .forEach(negociacao => this._negociacoes.adiciona(negociacao));
+                    this._mensagem.texto = 'negociação importada com sucesso'
+                }else{
+                    console.log('nao foi possivel obter a negociação');
+                    console.log(xhr.responseText);
+                    this._mensagem.texto = 'não foi possivel importar as negociações'
+                }
+                
+            }
+            xhr.send();
+        }
     }
 }
