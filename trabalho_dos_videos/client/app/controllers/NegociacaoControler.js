@@ -9,16 +9,27 @@ class NegociacaoController{
 
 
         this._negiciacoes = new Bind(new Negociacoes(), new NegociacoesView('#negociacoes'), 'adiciona', 'esvazia');
-    
+        this._service = new NegociacaoService();
         this._mensagem = new Bind (new Mensagem(), new MensagemView('#mensagemView'), ['texto']);
     }
 
     adiciona(event){
+        try{
         event.preventDefault();
 
         this._negociacoes.adiciona(this._criaNegociacao());
         this._mensagem.texto = 'negociação adicionada com sucesso';
         this._limparFormulario();
+    }catch(err){
+        console.log(err);
+        if (err instanceof DataInvalidaException){
+            this._mensagem.texto = err.mensage;
+        }else{
+            this._mensagem.texto = 
+            'um erro não esperado aconteceu. entre em contato com o suporte';
+        }
+        
+    }
     }
 
     _limparFormulario(){
@@ -43,25 +54,13 @@ class NegociacaoController{
 
     importaNegociacoes(){
         console.log('importando negociacao');
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', 'negociacoes/semana');
-
-        xhr.onreadtatechange = () =>{
-            if (xhr.readState == 4){
-                if (xhr.status == 200){
-                    console.log('obtendo as negociaçoes do servidor');
-                    JSON.parse(xhr.responseText)
-                    .map(Object =>new Negociacao(new Date (objeto.data), objeto.quantidade, objeto.valor))
-                    .forEach(negociacao => this._negociacoes.adiciona(negociacao));
-                    this._mensagem.texto = 'negociação importada com sucesso'
-                }else{
-                    console.log('nao foi possivel obter a negociação');
-                    console.log(xhr.responseText);
-                    this._mensagem.texto = 'não foi possivel importar as negociações'
-                }
-                
+        this._service.obterNegociacaoDaSemana(err, negociacoes)=>{
+            if (err){
+                this._mensagem.texto = 'nao foi possivel obter as negociações da semana.'
             }
-            xhr.send();
-        }
+            negociacoes.forEach(Negociacao => this._negiciacoes.adiciona(negociacao));
+            this._mensagem.texto = 'negociação importadas com sucesso';
+        };
+      
     }
 }
